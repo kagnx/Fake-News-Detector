@@ -1,0 +1,240 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Fake News Detector API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: predict
+    description: Fake news prediction
+  - name: history
+    description: Prediction history
+  - name: examples
+    description: Example articles
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /predict:
+    post:
+      operationId: predictNews
+      tags: [predict]
+      summary: Predict if news is fake or real
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PredictInput"
+      responses:
+        "200":
+          description: Prediction result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictionResult"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /stats:
+    get:
+      operationId: getStats
+      tags: [predict]
+      summary: Get model and usage statistics
+      responses:
+        "200":
+          description: Statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stats"
+
+  /examples:
+    get:
+      operationId: getExamples
+      tags: [examples]
+      summary: Get example articles for testing
+      responses:
+        "200":
+          description: Example articles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExampleArticle"
+
+  /history:
+    get:
+      operationId: listHistory
+      tags: [history]
+      summary: List recent prediction history
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: History list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HistoryItem"
+
+  /history/{id}:
+    delete:
+      operationId: deleteHistory
+      tags: [history]
+      summary: Delete a history item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    PredictInput:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 10
+        title:
+          type: ["string", "null"]
+
+    PredictionResult:
+      type: object
+      required: [label, confidence, fakeScore, realScore, keyFeatures, id]
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+          enum: [FAKE, REAL]
+        confidence:
+          type: number
+        fakeScore:
+          type: number
+        realScore:
+          type: number
+        keyFeatures:
+          type: array
+          items:
+            type: string
+        text:
+          type: ["string", "null"]
+        title:
+          type: ["string", "null"]
+        createdAt:
+          type: ["string", "null"]
+
+    Stats:
+      type: object
+      required: [modelAccuracy, totalPredictions, fakeCount, realCount, avgConfidence]
+      properties:
+        modelAccuracy:
+          type: number
+        totalPredictions:
+          type: integer
+        fakeCount:
+          type: integer
+        realCount:
+          type: integer
+        avgConfidence:
+          type: number
+
+    ExampleArticle:
+      type: object
+      required: [id, title, text, expectedLabel, category]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        text:
+          type: string
+        expectedLabel:
+          type: string
+          enum: [FAKE, REAL]
+        category:
+          type: string
+
+    HistoryItem:
+      type: object
+      required: [id, label, confidence, createdAt]
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+          enum: [FAKE, REAL]
+        confidence:
+          type: number
+        title:
+          type: ["string", "null"]
+        text:
+          type: string
+        createdAt:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
